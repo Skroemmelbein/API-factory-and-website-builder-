@@ -1,0 +1,85 @@
+{
+  "name": "E-commerce API",
+  "description": "A complete e-commerce API with products, orders, and users",
+  "version": "1.0.0",
+  "models": [
+    {
+      "name": "User",
+      "fields": [
+        { "name": "id", "type": "Int", "isRequired": true, "isUnique": true },
+        { "name": "email", "type": "String", "isRequired": true, "isUnique": true },
+        { "name": "firstName", "type": "String", "isRequired": true },
+        { "name": "lastName", "type": "String", "isRequired": true },
+        { "name": "phone", "type": "String", "isRequired": false },
+        { "name": "address", "type": "String", "isRequired": false },
+        { "name": "isAdmin", "type": "Boolean", "isRequired": true, "default": false },
+        { "name": "createdAt", "type": "DateTime", "isRequired": true },
+        { "name": "updatedAt", "type": "DateTime", "isRequired": true }
+      ]
+    },
+    {
+      "name": "Product",
+      "fields": [
+        { "name": "id", "type": "Int", "isRequired": true, "isUnique": true },
+        { "name": "name", "type": "String", "isRequired": true },
+        { "name": "description", "type": "String", "isRequired": false },
+        { "name": "price", "type": "Float", "isRequired": true },
+        { "name": "sku", "type": "String", "isRequired": true, "isUnique": true },
+        { "name": "stock", "type": "Int", "isRequired": true, "default": 0 },
+        { "name": "category", "type": "String", "isRequired": true },
+        { "name": "imageUrl", "type": "String", "isRequired": false },
+        { "name": "isActive", "type": "Boolean", "isRequired": true, "default": true },
+        { "name": "createdAt", "type": "DateTime", "isRequired": true },
+        { "name": "updatedAt", "type": "DateTime", "isRequired": true }
+      ]
+    },
+    {
+      "name": "Order",
+      "fields": [
+        { "name": "id", "type": "Int", "isRequired": true, "isUnique": true },
+        { "name": "userId", "type": "Int", "isRequired": true },
+        { "name": "total", "type": "Float", "isRequired": true },
+        { "name": "status", "type": "String", "isRequired": true, "default": "pending" },
+        { "name": "shippingAddress", "type": "String", "isRequired": true },
+        { "name": "billingAddress", "type": "String", "isRequired": true },
+        { "name": "paymentMethod", "type": "String", "isRequired": true },
+        { "name": "createdAt", "type": "DateTime", "isRequired": true },
+        { "name": "updatedAt", "type": "DateTime", "isRequired": true }
+      ]
+    },
+    {
+      "name": "OrderItem",
+      "fields": [
+        { "name": "id", "type": "Int", "isRequired": true, "isUnique": true },
+        { "name": "orderId", "type": "Int", "isRequired": true },
+        { "name": "productId", "type": "Int", "isRequired": true },
+        { "name": "quantity", "type": "Int", "isRequired": true },
+        { "name": "price", "type": "Float", "isRequired": true },
+        { "name": "createdAt", "type": "DateTime", "isRequired": true }
+      ]
+    }
+  ],
+  "options": {
+    "authentication": {
+      "type": "jwt",
+      "required": true
+    },
+    "validation": {
+      "enabled": true,
+      "strict": true
+    },
+    "rateLimiting": {
+      "enabled": true,
+      "maxRequests": 100,
+      "windowMs": 900000
+    },
+    "cors": {
+      "enabled": true,
+      "origins": ["http://localhost:3001", "https://yourdomain.com"]
+    },
+    "documentation": {
+      "enabled": true,
+      "path": "/api-docs"
+    }
+  }
+}

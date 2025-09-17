@@ -1,0 +1,66 @@
+{
+  "name": "Corporate Website",
+  "description": "A professional corporate website template",
+  "theme": "modern",
+  "components": [
+    {
+      "type": "Header",
+      "props": {
+        "title": "Your Company",
+        "logo": "/logo.png",
+        "navigation": [
+          { "label": "Home", "url": "#home" },
+          { "label": "About", "url": "#about" },
+          { "label": "Services", "url": "#services" },
+          { "label": "Contact", "url": "#contact" }
+        ]
+      }
+    },
+    {
+      "type": "Hero",
+      "props": {
+        "title": "Welcome to Your Company",
+        "subtitle": "We provide innovative solutions for your business needs",
+        "buttonText": "Get Started",
+        "buttonUrl": "#contact",
+        "backgroundImage": "/hero-bg.jpg"
+      }
+    },
+    {
+      "type": "Card",
+      "props": {
+        "title": "Our Services",
+        "content": "We offer a wide range of professional services to help your business grow and succeed in today's competitive market.",
+        "image": "/services.jpg",
+        "buttonText": "Learn More",
+        "buttonUrl": "#services"
+      }
+    },
+    {
+      "type": "Card",
+      "props": {
+        "title": "Why Choose Us",
+        "content": "With years of experience and a team of dedicated professionals, we deliver exceptional results that exceed expectations.",
+        "image": "/why-choose-us.jpg",
+        "buttonText": "About Us",
+        "buttonUrl": "#about"
+      }
+    }
+  ],
+  "customizations": {
+    "colors": {
+      "primary": "#1976d2",
+      "secondary": "#dc004e",
+      "background": "#ffffff",
+      "text": "#333333"
+    },
+    "fonts": {
+      "primary": "Inter, sans-serif",
+      "secondary": "Georgia, serif"
+    },
+    "spacing": {
+      "section": "4rem",
+      "element": "2rem"
+    }
+  }
+}
