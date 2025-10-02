@@ -1,3 +1,4 @@
+cursor/explore-software-capabilities-and-next-steps-afa2
 # Dependencies
 node_modules/
 npm-debug.log*
@@ -15,12 +16,59 @@ yarn-error.log*
 dist/
 build/
 *.tsbuildinfo
+=======
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Virtual Environment
+venv/
+ENV/
+env/
+.venv
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Testing
+.coverage
+htmlcov/
+.pytest_cache/
+.tox/
+
+# Logs
+*.log
+logs/
+ main
 
 # Database
 *.db
 *.sqlite
 *.sqlite3
-
+cursor/explore-software-capabilities-and-next-steps-afa2
 # Logs
 logs/
 *.log
@@ -106,3 +154,28 @@ uploads/
 
 # Generated files
 generated/
+=======
+# Environment variables
+.env
+.env.local
+
+# Workspace
+workspace/
+example_workspace/
+
+# Temporary files
+*.tmp
+temp/
+tmp/
+
+# Documentation
+docs/_build/
+
+# Package files
+*.tar.gz
+*.zip
+
+# Memory persistence
+*.pickle
+*.pk
+main
