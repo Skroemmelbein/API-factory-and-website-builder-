@@ -452,6 +452,10 @@ class WebsiteBuilder {
     }));
   }
 
+  getTemplateById(templateId) {
+    return this.templates.get(templateId);
+  }
+
   async createFromTemplate(templateId, options = {}) {
     const template = this.templates.get(templateId);
     if (!template) {
@@ -498,13 +502,33 @@ class WebsiteBuilder {
 
   async updateDesign(projectId, design) {
     design.updatedAt = new Date();
-    await this.saveDesign(design);
-    
-    return {
-      success: true,
-      design,
-      preview: await this.generatePreview(design)
-    };
+    // Try to persist via Prisma if available
+    try {
+      const { PrismaClient } = require('@prisma/client');
+      const prisma = new PrismaClient();
+      const updated = await prisma.design.update({
+        where: { id: typeof design.id === 'string' ? parseInt(design.id) : design.id },
+        data: {
+          components: design.components,
+          customizations: design.customizations || null,
+          theme: design.theme,
+          template: design.template
+        }
+      });
+      await prisma.$disconnect();
+      return {
+        success: true,
+        design: updated,
+        preview: await this.generatePreview(updated)
+      };
+    } catch (_) {
+      await this.saveDesign(design);
+      return {
+        success: true,
+        design,
+        preview: await this.generatePreview(design)
+      };
+    }
   }
 
   async generatePreview(design) {

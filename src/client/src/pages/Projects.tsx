@@ -83,6 +83,20 @@ const Projects: React.FC = () => {
     }
   };
 
+  const handleCreateFromTemplate = async (templateId: string) => {
+    try {
+      const res = await axios.post('/api/builder/create', {
+        templateId,
+        project: { name: `Website from ${templateId}` }
+      });
+      // Refresh projects after creation
+      await fetchProjects();
+      return res.data;
+    } catch (e) {
+      console.error('Failed to create project from template', e);
+    }
+  };
+
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'completed': return 'success';

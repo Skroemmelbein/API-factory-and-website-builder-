@@ -39,6 +39,29 @@ router.get('/templates', authenticateToken, (req, res) => {
   }
 });
 
+// Preview a template (returns generated HTML/CSS preview)
+router.get('/preview/:templateId', authenticateToken, async (req, res) => {
+  try {
+    const { templateId } = req.params;
+    const builder = new WebsiteBuilder();
+    const tpl = builder.getTemplateById(templateId);
+    if (!tpl) return res.status(404).json({ error: 'Template not found' });
+    const preview = await builder.generatePreview({
+      id: `preview-${templateId}`,
+      projectId: 0,
+      template: templateId,
+      theme: tpl.theme,
+      components: tpl.components,
+      createdAt: new Date(),
+      updatedAt: new Date()
+    });
+    res.json(preview);
+  } catch (error) {
+    console.error('Preview generation error:', error);
+    res.status(500).json({ error: 'Failed to generate preview', details: error.message });
+  }
+});
+
 // Create website from template (persists Project + Design if DB available)
 router.post('/create', [
   body('templateId').isString(),
