@@ -580,6 +580,35 @@ class WebsiteBuilder {
       }
     }
 
+    // Liquid Glass global styles
+    if (design.theme === 'liquid-glass') {
+      css += `/* Liquid Glass utility styles */\n`;
+      css += `.glass {\n`;
+      css += `  background: rgba(255, 255, 255, 0.08);\n`;
+      css += `  border-radius: 16px;\n`;
+      css += `  border: 1px solid rgba(255, 255, 255, 0.18);\n`;
+      css += `  backdrop-filter: blur(12px);\n`;
+      css += `  -webkit-backdrop-filter: blur(12px);\n`;
+      css += `  box-shadow: 0 8px 32px rgba(31, 38, 135, 0.37);\n`;
+      css += `}\n\n`;
+
+      // Apply glass effect to core components by default
+      css += `.header, .hero, .card {\n`;
+      css += `  background: rgba(255,255,255,0.08);\n`;
+      css += `  border: 1px solid rgba(255,255,255,0.18);\n`;
+      css += `  backdrop-filter: blur(10px);\n`;
+      css += `  -webkit-backdrop-filter: blur(10px);\n`;
+      css += `}\n\n`;
+
+      // Soft gradient background for the page
+      css += `body {\n`;
+      css += `  background: radial-gradient(1200px circle at 10% 10%, #8EC5FC 0%, rgba(142,197,252,0) 40%),\n`;
+      css += `              radial-gradient(1200px circle at 90% 20%, #E0C3FC 0%, rgba(224,195,252,0) 40%),\n`;
+      css += `              linear-gradient(135deg, #0f172a 0%, #111827 100%);\n`;
+      css += `  min-height: 100vh;\n`;
+      css += `}\n\n`;
+    }
+
     // Add responsive styles
     css += `/* Responsive styles */
 @media (max-width: 768px) {
