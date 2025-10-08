@@ -2,21 +2,33 @@ const express = require('express');
 const { body, validationResult } = require('express-validator');
 const router = express.Router();
 
-// Mock projects database (in production, use a real database)
-const projects = [];
+// Use Prisma-backed projects if available
+let projects = [];
 
 // Get all projects for authenticated user
-router.get('/', authenticateToken, (req, res) => {
+router.get('/', authenticateToken, async (req, res) => {
+  const prisma = req.app?.locals?.prisma;
+  if (prisma) {
+    const list = await prisma.project.findMany({
+      where: { userId: req.user.userId },
+      orderBy: { updatedAt: 'desc' }
+    });
+    return res.json(list);
+  }
   const userProjects = projects.filter(project => project.userId === req.user.userId);
   res.json(userProjects);
 });
 
 // Get specific project
-router.get('/:id', authenticateToken, (req, res) => {
-  const project = projects.find(p => p.id === parseInt(req.params.id) && p.userId === req.user.userId);
-  if (!project) {
-    return res.status(404).json({ error: 'Project not found' });
+router.get('/:id', authenticateToken, async (req, res) => {
+  const prisma = req.app?.locals?.prisma;
+  if (prisma) {
+    const project = await prisma.project.findFirst({ where: { id: parseInt(req.params.id), userId: req.user.userId } });
+    if (!project) return res.status(404).json({ error: 'Project not found' });
+    return res.json(project);
   }
+  const project = projects.find(p => p.id === parseInt(req.params.id) && p.userId === req.user.userId);
+  if (!project) return res.status(404).json({ error: 'Project not found' });
   res.json(project);
 });
 
@@ -25,7 +37,7 @@ router.post('/', [
   body('name').trim().isLength({ min: 1 }),
   body('type').isIn(['api', 'website', 'fullstack']),
   body('description').optional().trim()
-], authenticateToken, (req, res) => {
+], authenticateToken, async (req, res) => {
   try {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
@@ -33,19 +45,21 @@ router.post('/', [
     }
 
     const { name, type, description, config } = req.body;
-
-    const project = {
-      id: projects.length + 1,
-      userId: req.user.userId,
-      name,
-      type,
-      description: description || '',
-      config: config || {},
-      status: 'draft',
-      createdAt: new Date(),
-      updatedAt: new Date()
-    };
-
+    const prisma = req.app?.locals?.prisma;
+    if (prisma) {
+      const project = await prisma.project.create({
+        data: {
+          name,
+          type,
+          description: description || '',
+          config: config || {},
+          status: 'draft',
+          userId: req.user.userId
+        }
+      });
+      return res.status(201).json(project);
+    }
+    const project = { id: projects.length + 1, userId: req.user.userId, name, type, description: description || '', config: config || {}, status: 'draft', createdAt: new Date(), updatedAt: new Date() };
     projects.push(project);
     res.status(201).json(project);
   } catch (error) {
@@ -58,27 +72,38 @@ router.post('/', [
 router.put('/:id', [
   body('name').optional().trim().isLength({ min: 1 }),
   body('description').optional().trim()
-], authenticateToken, (req, res) => {
+], authenticateToken, async (req, res) => {
   try {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
       return res.status(400).json({ errors: errors.array() });
     }
-
-    const projectIndex = projects.findIndex(p => p.id === parseInt(req.params.id) && p.userId === req.user.userId);
-    if (projectIndex === -1) {
-      return res.status(404).json({ error: 'Project not found' });
+    const prisma = req.app?.locals?.prisma;
+    if (prisma) {
+      const updates = req.body;
+      try {
+        const updated = await prisma.project.update({
+          where: { id: parseInt(req.params.id) },
+          data: {
+            ...(updates.name ? { name: updates.name } : {}),
+            ...(updates.description !== undefined ? { description: updates.description } : {}),
+            ...(updates.config ? { config: updates.config } : {})
+          }
+        });
+        if (updated.userId !== req.user.userId) return res.status(404).json({ error: 'Project not found' });
+        return res.json(updated);
+      } catch (e) {
+        return res.status(404).json({ error: 'Project not found' });
+      }
     }
-
+    const projectIndex = projects.findIndex(p => p.id === parseInt(req.params.id) && p.userId === req.user.userId);
+    if (projectIndex === -1) return res.status(404).json({ error: 'Project not found' });
     const project = projects[projectIndex];
     const updates = req.body;
-    
-    // Update allowed fields
     if (updates.name) project.name = updates.name;
     if (updates.description !== undefined) project.description = updates.description;
     if (updates.config) project.config = { ...project.config, ...updates.config };
     project.updatedAt = new Date();
-
     projects[projectIndex] = project;
     res.json(project);
   } catch (error) {
@@ -88,12 +113,21 @@ router.put('/:id', [
 });
 
 // Delete project
-router.delete('/:id', authenticateToken, (req, res) => {
-  const projectIndex = projects.findIndex(p => p.id === parseInt(req.params.id) && p.userId === req.user.userId);
-  if (projectIndex === -1) {
-    return res.status(404).json({ error: 'Project not found' });
+router.delete('/:id', authenticateToken, async (req, res) => {
+  const prisma = req.app?.locals?.prisma;
+  if (prisma) {
+    try {
+      const project = await prisma.project.findUnique({ where: { id: parseInt(req.params.id) } });
+      if (!project || project.userId !== req.user.userId) return res.status(404).json({ error: 'Project not found' });
+      await prisma.design.deleteMany({ where: { projectId: project.id } });
+      await prisma.project.delete({ where: { id: project.id } });
+      return res.json({ message: 'Project deleted successfully' });
+    } catch (e) {
+      return res.status(404).json({ error: 'Project not found' });
+    }
   }
-
+  const projectIndex = projects.findIndex(p => p.id === parseInt(req.params.id) && p.userId === req.user.userId);
+  if (projectIndex === -1) return res.status(404).json({ error: 'Project not found' });
   projects.splice(projectIndex, 1);
   res.json({ message: 'Project deleted successfully' });
 });

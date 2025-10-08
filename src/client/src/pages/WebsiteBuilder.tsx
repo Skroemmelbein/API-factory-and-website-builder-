@@ -108,6 +108,16 @@ const WebsiteBuilder: React.FC = () => {
                 variant="outlined"
                 startIcon={<PreviewIcon />}
                 sx={{ mr: 1 }}
+                disabled={!selectedTemplate}
+                onClick={async () => {
+                  try {
+                    const res = await axios.get(`/api/builder/preview/${selectedTemplate}`);
+                    // In a real app, open a preview modal or route
+                    console.log('Preview', res.data);
+                  } catch (e) {
+                    console.error('Failed to preview', e);
+                  }
+                }}
               >
                 Preview
               </Button>
@@ -115,6 +125,18 @@ const WebsiteBuilder: React.FC = () => {
                 variant="outlined"
                 startIcon={<DownloadIcon />}
                 sx={{ mr: 1 }}
+                disabled={!selectedTemplate}
+                onClick={async () => {
+                  try {
+                    const res = await axios.post('/api/builder/create', {
+                      templateId: selectedTemplate,
+                      project: { name: `Website from ${selectedTemplate}` }
+                    });
+                    console.log('Created', res.data);
+                  } catch (e) {
+                    console.error('Failed to create from template', e);
+                  }
+                }}
               >
                 Export
               </Button>

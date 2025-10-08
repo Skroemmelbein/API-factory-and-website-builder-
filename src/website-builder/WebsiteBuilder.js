@@ -473,14 +473,27 @@ class WebsiteBuilder {
       updatedAt: new Date()
     };
 
-    // Save design (in a real implementation, this would be saved to a database)
-    await this.saveDesign(design);
-
-    return {
-      success: true,
-      design,
-      preview: await this.generatePreview(design)
-    };
+    // Persist to Prisma if available
+    try {
+      const { PrismaClient } = require('@prisma/client');
+      const prisma = new PrismaClient();
+      const created = await prisma.design.create({
+        data: {
+          projectId: typeof projectId === 'string' ? parseInt(projectId) : projectId,
+          template: design.template,
+          theme: design.theme,
+          components: design.components,
+          customizations: design.customizations || null
+        }
+      });
+      await prisma.$disconnect();
+      const preview = await this.generatePreview({ ...design, id: created.id });
+      return { success: true, design: { ...design, id: created.id }, preview };
+    } catch (_) {
+      // Fallback to non-DB path
+      await this.saveDesign(design);
+      return { success: true, design, preview: await this.generatePreview(design) };
+    }
   }
 
   async updateDesign(projectId, design) {
@@ -715,8 +728,15 @@ class WebsiteBuilder {
   }
 
   async getDesign(projectId) {
-    // In a real implementation, this would fetch from a database
-    // For now, return a mock design
+    // Attempt DB fetch first
+    try {
+      const { PrismaClient } = require('@prisma/client');
+      const prisma = new PrismaClient();
+      const design = await prisma.design.findFirst({ where: { projectId: typeof projectId === 'string' ? parseInt(projectId) : projectId }, orderBy: { updatedAt: 'desc' } });
+      await prisma.$disconnect();
+      if (design) return design;
+    } catch (_) {}
+    // Fallback mock
     return {
       id: `design-${projectId}`,
       projectId,
