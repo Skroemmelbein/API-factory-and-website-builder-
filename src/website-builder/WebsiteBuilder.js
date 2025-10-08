@@ -282,6 +282,30 @@ class WebsiteBuilder {
           lg: '2rem',
           xl: '4rem'
         }
+      },
+      'liquid-glass': {
+        name: 'Liquid Glass',
+        colors: {
+          primary: '#8EC5FC',
+          secondary: '#E0C3FC',
+          success: '#88d4ab',
+          danger: '#ff6b6b',
+          warning: '#ffd166',
+          info: '#a0c4ff',
+          light: 'rgba(255,255,255,0.6)',
+          dark: 'rgba(0,0,0,0.6)'
+        },
+        fonts: {
+          primary: 'Poppins, Inter, -apple-system, BlinkMacSystemFont, sans-serif',
+          secondary: 'Rubik, system-ui, sans-serif'
+        },
+        spacing: {
+          xs: '0.25rem',
+          sm: '0.5rem',
+          md: '1rem',
+          lg: '2rem',
+          xl: '3rem'
+        }
       }
     };
 
@@ -308,8 +332,10 @@ class WebsiteBuilder {
   }
 
   loadDefaultTemplates() {
-    const defaultTemplates = {
+    // Seed core templates
+    const baseTemplates = {
       'landing-page': {
+        id: 'landing-page',
         name: 'Landing Page',
         description: 'A modern landing page with hero section and features',
         components: [
@@ -334,6 +360,7 @@ class WebsiteBuilder {
         theme: 'modern'
       },
       'portfolio': {
+        id: 'portfolio',
         name: 'Portfolio',
         description: 'A clean portfolio website to showcase your work',
         components: [
@@ -353,8 +380,53 @@ class WebsiteBuilder {
       }
     };
 
-    for (const [name, template] of Object.entries(defaultTemplates)) {
+    for (const [name, template] of Object.entries(baseTemplates)) {
       this.templates.set(name, template);
+    }
+
+    // Programmatically generate 50 Liquid Glass templates
+    const totalTemplates = 50;
+    for (let i = 1; i <= totalTemplates; i++) {
+      const id = `liquid-glass-${String(i).padStart(2, '0')}`;
+      const template = {
+        id,
+        name: `Liquid Glass ${String(i).padStart(2, '0')}`,
+        description: 'Liquid Glass aesthetic with frosted, blurred surfaces and soft gradients',
+        components: [
+          {
+            type: 'Header',
+            props: {
+              title: `LG ${String(i).padStart(2, '0')} Brand`,
+              navigation: [
+                { label: 'Home', url: '#' },
+                { label: 'Features', url: '#features' },
+                { label: 'Contact', url: '#contact' }
+              ]
+            }
+          },
+          {
+            type: 'Hero',
+            props: {
+              title: 'Next‑Gen Liquid Glass UI',
+              subtitle: 'Elegant frosted surfaces • Depth • Soft shadows',
+              buttonText: 'Get Started',
+              buttonUrl: '#contact',
+              backgroundImage: ''
+            }
+          },
+          {
+            type: 'Card',
+            props: {
+              title: 'Beautifully Minimal',
+              content: 'Crisp typography and glassy panels focus attention.',
+              buttonText: 'Learn More',
+              buttonUrl: '#'
+            }
+          }
+        ],
+        theme: 'liquid-glass'
+      };
+      this.templates.set(id, template);
     }
   }
 
@@ -371,7 +443,9 @@ class WebsiteBuilder {
   }
 
   getAvailableTemplates() {
-    return Array.from(this.templates.values()).map(template => ({
+    // Include template IDs to allow the UI to reference precise selections
+    return Array.from(this.templates.entries()).map(([id, template]) => ({
+      id,
       name: template.name,
       description: template.description,
       theme: template.theme

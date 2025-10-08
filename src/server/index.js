@@ -68,10 +68,14 @@ app.use('*', (req, res) => {
   res.status(404).json({ error: 'Route not found' });
 });
 
-app.listen(PORT, () => {
-  console.log(`🚀 Server running on port ${PORT}`);
-  console.log(`📚 API Documentation: http://localhost:${PORT}${process.env.API_DOCS_PATH || '/api-docs'}`);
-  console.log(`🏥 Health Check: http://localhost:${PORT}/health`);
-});
-
-module.exports = app;
+// Export the app for serverless platforms (e.g., Vercel)
+if (process.env.NOW_REGION || process.env.VERCEL) {
+  module.exports = app;
+} else {
+  app.listen(PORT, () => {
+    console.log(`🚀 Server running on port ${PORT}`);
+    console.log(`📚 API Documentation: http://localhost:${PORT}${process.env.API_DOCS_PATH || '/api-docs'}`);
+    console.log(`🏥 Health Check: http://localhost:${PORT}/health`);
+  });
+  module.exports = app;
+}
