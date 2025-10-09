@@ -4,8 +4,9 @@ const jwt = require('jsonwebtoken');
 const { body, validationResult } = require('express-validator');
 const router = express.Router();
 
-// Mock user database (in production, use a real database)
-const users = [];
+// Use Prisma for persistent users (fallback to in-memory if Prisma missing)
+const useDb = true;
+let users = [];
 
 // Register endpoint
 router.post('/register', [
@@ -21,25 +22,22 @@ router.post('/register', [
 
     const { email, password, name } = req.body;
 
-    // Check if user already exists
-    const existingUser = users.find(user => user.email === email);
-    if (existingUser) {
-      return res.status(400).json({ error: 'User already exists' });
+    const prisma = req.app?.locals?.prisma;
+    let user;
+    if (prisma) {
+      const exists = await prisma.user.findUnique({ where: { email } });
+      if (exists) return res.status(400).json({ error: 'User already exists' });
+      const hashedPassword = await bcrypt.hash(password, 12);
+      user = await prisma.user.create({
+        data: { email, name, passwordHash: hashedPassword }
+      });
+    } else {
+      const existingUser = users.find(u => u.email === email);
+      if (existingUser) return res.status(400).json({ error: 'User already exists' });
+      const hashedPassword = await bcrypt.hash(password, 12);
+      user = { id: users.length + 1, email, password: hashedPassword, name, createdAt: new Date() };
+      users.push(user);
     }
-
-    // Hash password
-    const hashedPassword = await bcrypt.hash(password, 12);
-
-    // Create user
-    const user = {
-      id: users.length + 1,
-      email,
-      password: hashedPassword,
-      name,
-      createdAt: new Date()
-    };
-
-    users.push(user);
 
     // Generate JWT
     const token = jwt.sign(
@@ -75,17 +73,18 @@ router.post('/login', [
     }
 
     const { email, password } = req.body;
-
-    // Find user
-    const user = users.find(user => user.email === email);
-    if (!user) {
-      return res.status(401).json({ error: 'Invalid credentials' });
-    }
-
-    // Check password
-    const isValidPassword = await bcrypt.compare(password, user.password);
-    if (!isValidPassword) {
-      return res.status(401).json({ error: 'Invalid credentials' });
+    const prisma = req.app?.locals?.prisma;
+    let user;
+    if (prisma) {
+      user = await prisma.user.findUnique({ where: { email } });
+      if (!user) return res.status(401).json({ error: 'Invalid credentials' });
+      const isValidPassword = await bcrypt.compare(password, user.passwordHash);
+      if (!isValidPassword) return res.status(401).json({ error: 'Invalid credentials' });
+    } else {
+      user = users.find(u => u.email === email);
+      if (!user) return res.status(401).json({ error: 'Invalid credentials' });
+      const isValidPassword = await bcrypt.compare(password, user.password);
+      if (!isValidPassword) return res.status(401).json({ error: 'Invalid credentials' });
     }
 
     // Generate JWT
@@ -111,18 +110,16 @@ router.post('/login', [
 });
 
 // Get current user
-router.get('/me', authenticateToken, (req, res) => {
-  const user = users.find(user => user.id === req.user.userId);
-  if (!user) {
-    return res.status(404).json({ error: 'User not found' });
+router.get('/me', authenticateToken, async (req, res) => {
+  const prisma = req.app?.locals?.prisma;
+  if (prisma) {
+    const user = await prisma.user.findUnique({ where: { id: req.user.userId } });
+    if (!user) return res.status(404).json({ error: 'User not found' });
+    return res.json({ id: user.id, email: user.email, name: user.name, createdAt: user.createdAt });
   }
-
-  res.json({
-    id: user.id,
-    email: user.email,
-    name: user.name,
-    createdAt: user.createdAt
-  });
+  const user = users.find(u => u.id === req.user.userId);
+  if (!user) return res.status(404).json({ error: 'User not found' });
+  res.json({ id: user.id, email: user.email, name: user.name, createdAt: user.createdAt });
 });
 
 // Middleware to authenticate JWT token

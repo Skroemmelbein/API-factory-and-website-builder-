@@ -1,0 +1,62 @@
+// Prisma schema for Supabase (PostgreSQL)
+// Models: User, Project, Design, Subscription
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id            Int           @id @default(autoincrement())
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+  email         String        @unique
+  name          String
+  passwordHash  String
+  plan          String        @default("free")
+  projects      Project[]
+  subscriptions Subscription[]
+}
+
+model Project {
+  id          Int       @id @default(autoincrement())
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  name        String
+  type        String
+  description String     @default("")
+  status      String     @default("draft")
+  config      Json?
+  user        User       @relation(fields: [userId], references: [id])
+  userId      Int
+  designs     Design[]
+}
+
+model Design {
+  id          Int       @id @default(autoincrement())
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  project     Project   @relation(fields: [projectId], references: [id])
+  projectId   Int
+  template    String
+  theme       String
+  components  Json
+  customizations Json?
+}
+
+model Subscription {
+  id          Int       @id @default(autoincrement())
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  provider    String
+  status      String
+  customerId  String
+  priceId     String?
+  currentPeriodEnd DateTime?
+  user        User      @relation(fields: [userId], references: [id])
+  userId      Int
+}

@@ -6,6 +6,15 @@ const rateLimit = require('express-rate-limit');
 require('dotenv').config();
 
 const app = express();
+// Initialize Prisma client once and attach to app locals
+let prisma;
+try {
+  const { PrismaClient } = require('@prisma/client');
+  prisma = new PrismaClient();
+  app.locals.prisma = prisma;
+} catch (e) {
+  console.warn('Prisma is not available. Ensure prisma is generated and DATABASE_URL is set.');
+}
 const PORT = process.env.PORT || 3000;
 
 // Security middleware
@@ -68,10 +77,14 @@ app.use('*', (req, res) => {
   res.status(404).json({ error: 'Route not found' });
 });
 
-app.listen(PORT, () => {
-  console.log(`🚀 Server running on port ${PORT}`);
-  console.log(`📚 API Documentation: http://localhost:${PORT}${process.env.API_DOCS_PATH || '/api-docs'}`);
-  console.log(`🏥 Health Check: http://localhost:${PORT}/health`);
-});
-
-module.exports = app;
+// Export the app for serverless platforms (e.g., Vercel)
+if (process.env.NOW_REGION || process.env.VERCEL) {
+  module.exports = app;
+} else {
+  app.listen(PORT, () => {
+    console.log(`🚀 Server running on port ${PORT}`);
+    console.log(`📚 API Documentation: http://localhost:${PORT}${process.env.API_DOCS_PATH || '/api-docs'}`);
+    console.log(`🏥 Health Check: http://localhost:${PORT}/health`);
+  });
+  module.exports = app;
+}

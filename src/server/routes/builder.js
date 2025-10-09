@@ -39,10 +39,34 @@ router.get('/templates', authenticateToken, (req, res) => {
   }
 });
 
-// Create website from template
+// Preview a template (returns generated HTML/CSS preview)
+router.get('/preview/:templateId', authenticateToken, async (req, res) => {
+  try {
+    const { templateId } = req.params;
+    const builder = new WebsiteBuilder();
+    const tpl = builder.getTemplateById(templateId);
+    if (!tpl) return res.status(404).json({ error: 'Template not found' });
+    const preview = await builder.generatePreview({
+      id: `preview-${templateId}`,
+      projectId: 0,
+      template: templateId,
+      theme: tpl.theme,
+      components: tpl.components,
+      createdAt: new Date(),
+      updatedAt: new Date()
+    });
+    res.json(preview);
+  } catch (error) {
+    console.error('Preview generation error:', error);
+    res.status(500).json({ error: 'Failed to generate preview', details: error.message });
+  }
+});
+
+// Create website from template (persists Project + Design if DB available)
 router.post('/create', [
   body('templateId').isString(),
-  body('projectId').isInt(),
+  body('projectId').optional().isInt(),
+  body('project').optional().isObject(),
   body('customizations').optional().isObject()
 ], authenticateToken, async (req, res) => {
   try {
@@ -51,11 +75,29 @@ router.post('/create', [
       return res.status(400).json({ errors: errors.array() });
     }
 
-    const { templateId, projectId, customizations = {} } = req.body;
+    const { templateId, projectId, project, customizations = {} } = req.body;
 
     const builder = new WebsiteBuilder();
+    const prisma = req.app?.locals?.prisma;
+
+    let ensuredProjectId = projectId;
+    if (prisma && !ensuredProjectId) {
+      // Create project if not provided
+      const createdProject = await prisma.project.create({
+        data: {
+          userId: req.user.userId,
+          name: project?.name || `Website ${new Date().toISOString().slice(0,10)}`,
+          type: 'website',
+          description: project?.description || '',
+          status: 'draft',
+          config: project?.config || {}
+        }
+      });
+      ensuredProjectId = createdProject.id;
+    }
+
     const result = await builder.createFromTemplate(templateId, {
-      projectId,
+      projectId: ensuredProjectId,
       customizations
     });
 

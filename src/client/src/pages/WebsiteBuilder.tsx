@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   Container,
   Typography,
@@ -25,33 +25,33 @@ import {
   Close as CloseIcon
 } from '@mui/icons-material';
 import { useAuth } from '../contexts/AuthContext';
+import axios from 'axios';
 
 const WebsiteBuilder: React.FC = () => {
   const { user } = useAuth();
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [selectedTemplate, setSelectedTemplate] = useState('');
   const [components, setComponents] = useState<any[]>([]);
+  const [templates, setTemplates] = useState<any[]>([]);
+  const [loadingTemplates, setLoadingTemplates] = useState(false);
 
-  const templates = [
-    {
-      id: 'landing-page',
-      name: 'Landing Page',
-      description: 'Modern landing page with hero section',
-      preview: '/api/placeholder/400/300'
-    },
-    {
-      id: 'portfolio',
-      name: 'Portfolio',
-      description: 'Clean portfolio website',
-      preview: '/api/placeholder/400/300'
-    },
-    {
-      id: 'blog',
-      name: 'Blog',
-      description: 'Professional blog layout',
-      preview: '/api/placeholder/400/300'
-    }
-  ];
+  useEffect(() => {
+    if (!user) return;
+    const fetchTemplates = async () => {
+      setLoadingTemplates(true);
+      try {
+        const res = await axios.get('/api/builder/templates');
+        setTemplates(res.data);
+      } catch (e) {
+        console.error('Failed to fetch templates', e);
+      } finally {
+        setLoadingTemplates(false);
+      }
+    };
+    fetchTemplates();
+  }, [user]);
+
+  // templates are now loaded from API
 
   const availableComponents = [
     { type: 'Header', name: 'Header', icon: '🏠' },
@@ -108,6 +108,16 @@ const WebsiteBuilder: React.FC = () => {
                 variant="outlined"
                 startIcon={<PreviewIcon />}
                 sx={{ mr: 1 }}
+                disabled={!selectedTemplate}
+                onClick={async () => {
+                  try {
+                    const res = await axios.get(`/api/builder/preview/${selectedTemplate}`);
+                    // In a real app, open a preview modal or route
+                    console.log('Preview', res.data);
+                  } catch (e) {
+                    console.error('Failed to preview', e);
+                  }
+                }}
               >
                 Preview
               </Button>
@@ -115,6 +125,18 @@ const WebsiteBuilder: React.FC = () => {
                 variant="outlined"
                 startIcon={<DownloadIcon />}
                 sx={{ mr: 1 }}
+                disabled={!selectedTemplate}
+                onClick={async () => {
+                  try {
+                    const res = await axios.post('/api/builder/create', {
+                      templateId: selectedTemplate,
+                      project: { name: `Website from ${selectedTemplate}` }
+                    });
+                    console.log('Created', res.data);
+                  } catch (e) {
+                    console.error('Failed to create from template', e);
+                  }
+                }}
               >
                 Export
               </Button>
@@ -211,7 +233,15 @@ const WebsiteBuilder: React.FC = () => {
           Choose a Template
         </Typography>
         <Grid container spacing={2} sx={{ mb: 3 }}>
-          {templates.map((template) => (
+          {loadingTemplates ? (
+            <Grid item xs={12}>
+              <Typography variant="body2" color="text.secondary">Loading templates...</Typography>
+            </Grid>
+          ) : templates.length === 0 ? (
+            <Grid item xs={12}>
+              <Typography variant="body2" color="text.secondary">No templates available</Typography>
+            </Grid>
+          ) : templates.map((template) => (
             <Grid item xs={12} key={template.id}>
               <Card
                 sx={{

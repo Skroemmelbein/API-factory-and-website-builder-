@@ -282,6 +282,30 @@ class WebsiteBuilder {
           lg: '2rem',
           xl: '4rem'
         }
+      },
+      'liquid-glass': {
+        name: 'Liquid Glass',
+        colors: {
+          primary: '#8EC5FC',
+          secondary: '#E0C3FC',
+          success: '#88d4ab',
+          danger: '#ff6b6b',
+          warning: '#ffd166',
+          info: '#a0c4ff',
+          light: 'rgba(255,255,255,0.6)',
+          dark: 'rgba(0,0,0,0.6)'
+        },
+        fonts: {
+          primary: 'Poppins, Inter, -apple-system, BlinkMacSystemFont, sans-serif',
+          secondary: 'Rubik, system-ui, sans-serif'
+        },
+        spacing: {
+          xs: '0.25rem',
+          sm: '0.5rem',
+          md: '1rem',
+          lg: '2rem',
+          xl: '3rem'
+        }
       }
     };
 
@@ -308,8 +332,10 @@ class WebsiteBuilder {
   }
 
   loadDefaultTemplates() {
-    const defaultTemplates = {
+    // Seed core templates
+    const baseTemplates = {
       'landing-page': {
+        id: 'landing-page',
         name: 'Landing Page',
         description: 'A modern landing page with hero section and features',
         components: [
@@ -334,6 +360,7 @@ class WebsiteBuilder {
         theme: 'modern'
       },
       'portfolio': {
+        id: 'portfolio',
         name: 'Portfolio',
         description: 'A clean portfolio website to showcase your work',
         components: [
@@ -353,8 +380,53 @@ class WebsiteBuilder {
       }
     };
 
-    for (const [name, template] of Object.entries(defaultTemplates)) {
+    for (const [name, template] of Object.entries(baseTemplates)) {
       this.templates.set(name, template);
+    }
+
+    // Programmatically generate 50 Liquid Glass templates
+    const totalTemplates = 50;
+    for (let i = 1; i <= totalTemplates; i++) {
+      const id = `liquid-glass-${String(i).padStart(2, '0')}`;
+      const template = {
+        id,
+        name: `Liquid Glass ${String(i).padStart(2, '0')}`,
+        description: 'Liquid Glass aesthetic with frosted, blurred surfaces and soft gradients',
+        components: [
+          {
+            type: 'Header',
+            props: {
+              title: `LG ${String(i).padStart(2, '0')} Brand`,
+              navigation: [
+                { label: 'Home', url: '#' },
+                { label: 'Features', url: '#features' },
+                { label: 'Contact', url: '#contact' }
+              ]
+            }
+          },
+          {
+            type: 'Hero',
+            props: {
+              title: 'Next‑Gen Liquid Glass UI',
+              subtitle: 'Elegant frosted surfaces • Depth • Soft shadows',
+              buttonText: 'Get Started',
+              buttonUrl: '#contact',
+              backgroundImage: ''
+            }
+          },
+          {
+            type: 'Card',
+            props: {
+              title: 'Beautifully Minimal',
+              content: 'Crisp typography and glassy panels focus attention.',
+              buttonText: 'Learn More',
+              buttonUrl: '#'
+            }
+          }
+        ],
+        theme: 'liquid-glass'
+      };
+      this.templates.set(id, template);
     }
   }
 
@@ -371,11 +443,17 @@ class WebsiteBuilder {
   }
 
   getAvailableTemplates() {
-    return Array.from(this.templates.values()).map(template => ({
+    // Include template IDs to allow the UI to reference precise selections
+    return Array.from(this.templates.entries()).map(([id, template]) => ({
+      id,
       name: template.name,
       description: template.description,
       theme: template.theme
     }));
+  }
+
+  getTemplateById(templateId) {
+    return this.templates.get(templateId);
   }
 
   async createFromTemplate(templateId, options = {}) {
@@ -399,25 +477,58 @@ class WebsiteBuilder {
       updatedAt: new Date()
     };
 
-    // Save design (in a real implementation, this would be saved to a database)
-    await this.saveDesign(design);
-
-    return {
-      success: true,
-      design,
-      preview: await this.generatePreview(design)
-    };
+    // Persist to Prisma if available
+    try {
+      const { PrismaClient } = require('@prisma/client');
+      const prisma = new PrismaClient();
+      const created = await prisma.design.create({
+        data: {
+          projectId: typeof projectId === 'string' ? parseInt(projectId) : projectId,
+          template: design.template,
+          theme: design.theme,
+          components: design.components,
+          customizations: design.customizations || null
+        }
+      });
+      await prisma.$disconnect();
+      const preview = await this.generatePreview({ ...design, id: created.id });
+      return { success: true, design: { ...design, id: created.id }, preview };
+    } catch (_) {
+      // Fallback to non-DB path
+      await this.saveDesign(design);
+      return { success: true, design, preview: await this.generatePreview(design) };
+    }
   }
 
   async updateDesign(projectId, design) {
     design.updatedAt = new Date();
-    await this.saveDesign(design);
-    
-    return {
-      success: true,
-      design,
-      preview: await this.generatePreview(design)
-    };
+    // Try to persist via Prisma if available
+    try {
+      const { PrismaClient } = require('@prisma/client');
+      const prisma = new PrismaClient();
+      const updated = await prisma.design.update({
+        where: { id: typeof design.id === 'string' ? parseInt(design.id) : design.id },
+        data: {
+          components: design.components,
+          customizations: design.customizations || null,
+          theme: design.theme,
+          template: design.template
+        }
+      });
+      await prisma.$disconnect();
+      return {
+        success: true,
+        design: updated,
+        preview: await this.generatePreview(updated)
+      };
+    } catch (_) {
+      await this.saveDesign(design);
+      return {
+        success: true,
+        design,
+        preview: await this.generatePreview(design)
+      };
+    }
   }
 
   async generatePreview(design) {
@@ -504,6 +615,35 @@ class WebsiteBuilder {
         css += component.styles;
         css += `\n\n`;
       }
+    }
+
+    // Liquid Glass global styles
+    if (design.theme === 'liquid-glass') {
+      css += `/* Liquid Glass utility styles */\n`;
+      css += `.glass {\n`;
+      css += `  background: rgba(255, 255, 255, 0.08);\n`;
+      css += `  border-radius: 16px;\n`;
+      css += `  border: 1px solid rgba(255, 255, 255, 0.18);\n`;
+      css += `  backdrop-filter: blur(12px);\n`;
+      css += `  -webkit-backdrop-filter: blur(12px);\n`;
+      css += `  box-shadow: 0 8px 32px rgba(31, 38, 135, 0.37);\n`;
+      css += `}\n\n`;
+
+      // Apply glass effect to core components by default
+      css += `.header, .hero, .card {\n`;
+      css += `  background: rgba(255,255,255,0.08);\n`;
+      css += `  border: 1px solid rgba(255,255,255,0.18);\n`;
+      css += `  backdrop-filter: blur(10px);\n`;
+      css += `  -webkit-backdrop-filter: blur(10px);\n`;
+      css += `}\n\n`;
+
+      // Soft gradient background for the page
+      css += `body {\n`;
+      css += `  background: radial-gradient(1200px circle at 10% 10%, #8EC5FC 0%, rgba(142,197,252,0) 40%),\n`;
+      css += `              radial-gradient(1200px circle at 90% 20%, #E0C3FC 0%, rgba(224,195,252,0) 40%),\n`;
+      css += `              linear-gradient(135deg, #0f172a 0%, #111827 100%);\n`;
+      css += `  min-height: 100vh;\n`;
+      css += `}\n\n`;
     }
 
     // Add responsive styles
@@ -612,8 +752,15 @@ class WebsiteBuilder {
   }
 
   async getDesign(projectId) {
-    // In a real implementation, this would fetch from a database
-    // For now, return a mock design
+    // Attempt DB fetch first
+    try {
+      const { PrismaClient } = require('@prisma/client');
+      const prisma = new PrismaClient();
+      const design = await prisma.design.findFirst({ where: { projectId: typeof projectId === 'string' ? parseInt(projectId) : projectId }, orderBy: { updatedAt: 'desc' } });
+      await prisma.$disconnect();
+      if (design) return design;
+    } catch (_) {}
+    // Fallback mock
     return {
       id: `design-${projectId}`,
       projectId,
